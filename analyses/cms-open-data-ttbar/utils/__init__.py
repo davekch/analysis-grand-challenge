@@ -12,7 +12,7 @@ from coffea.processor import servicex
 from servicex import ServiceXDataset
 
 
-def get_client(af="coffea_casa"):
+def get_client(af="coffea_casa", cluster=None):
     if af == "coffea_casa":
         from dask.distributed import Client
 
@@ -31,8 +31,10 @@ def get_client(af="coffea_casa"):
 
     elif af == "local":
         from dask.distributed import Client
-
-        client = Client()
+        if cluster:
+            client = Client(cluster)
+        else:
+            client = Client()
 
     else:
         raise NotImplementedError(f"unknown analysis facility: {af}")
@@ -65,7 +67,7 @@ def construct_fileset(n_files_max_per_sample, use_xcache=False):
     }
 
     # list of files
-    with open("ntuples.json") as f:
+    with open("ntuples_lrz.json") as f:
         file_info = json.load(f)
 
     # process into "fileset" summarizing all info
@@ -81,7 +83,12 @@ def construct_fileset(n_files_max_per_sample, use_xcache=False):
 
             file_paths = [f["path"] for f in file_list]
             if use_xcache:
-                file_paths = [f.replace("https://xrootd-local.unl.edu:1094", "root://red-xcache1.unl.edu") for f in file_paths]
+                # monkey patch uproot, otherwise crashes
+                uproot._util.file_object_path_split = lambda path: (path, None)
+                file_paths = [
+                    "root://lcg-lrz-xcache2.grid.lrz.de:1094//" + f
+                    for f in file_paths
+                ]
             nevts_total = sum([f["nevts"] for f in file_list])
             metadata = {"process": process, "variation": variation, "nevts": nevts_total, "xsec": xsec_info[process]}
             fileset.update({f"{process}__{variation}": {"files": file_paths, "metadata": metadata}})

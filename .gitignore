@@ -11,6 +11,7 @@ servicex.yml
 analyses/**/*.root
 analyses/**/*.pdf
 analyses/**/*.npz
+analyses/**/servicex.yaml
 
 workshops/agctools2021/HZZ_analysis_pipeline/**/*.root
 workshops/agctools2021/HZZ_analysis_pipeline/*/*.pdf
