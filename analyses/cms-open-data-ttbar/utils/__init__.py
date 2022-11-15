@@ -53,6 +53,11 @@ def set_style():
     plt.rcParams['text.color'] = "222222"
 
 
+class HashedByKeysDict(dict):
+    def __hash__(self):
+        return hash("".join(self.keys()))
+
+
 def construct_fileset(n_files_max_per_sample, use_xcache=False):
     # using https://atlas-groupdata.web.cern.ch/atlas-groupdata/dev/AnalysisTop/TopDataPreparation/XSection-MC15-13TeV.data
     # for reference
@@ -84,9 +89,9 @@ def construct_fileset(n_files_max_per_sample, use_xcache=False):
             file_paths = [f["path"] for f in file_list]
             if use_xcache:
                 # monkey patch uproot, otherwise crashes
-                uproot._util.file_object_path_split = lambda path: (path, None)
+                # uproot._util.file_object_path_split = lambda path: (path, None)
                 file_paths = [
-                    "root://lcg-lrz-xcache2.grid.lrz.de:1094//" + f
+                    HashedByKeysDict({"root://lcg-lrz-xcache2.grid.lrz.de:1094//" + f: None})
                     for f in file_paths
                 ]
             nevts_total = sum([f["nevts"] for f in file_list])
