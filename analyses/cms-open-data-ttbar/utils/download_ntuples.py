@@ -13,13 +13,17 @@ from typing import List, Dict
 logger = logging.getLogger(__name__)
 
 
-def download_files(urls: List[str], folder: Path, max_connections: int = 50, chunk_size: int = 50_000_000):
+def download_files(urls: List[str], folder: Path, max_connections: int = 10, chunk_size: int = 50_000_000):
     """download all files from urls"""
     semaphore = asyncio.BoundedSemaphore(max_connections)
 
     async def download_file(url: str):
         filename = url.split("/")[-1]
         filepath = folder / filename
+        if filepath.is_file():
+            logger.warning(f"{filepath} already exists, skipping download")
+            return
+
         # fetch data from url
         async with semaphore, aiohttp.ClientSession() as session:
             logger.info(f"started session to download {filename} from {url}")
@@ -32,14 +36,14 @@ def download_files(urls: List[str], folder: Path, max_connections: int = 50, chu
                         f"download {filename} from {url}"
                     )
                     raise
-                
+
                 logger.info(f"response status ok, start downloading {filename} to {filepath}")
                 async with aiofiles.open(filepath, mode="wb") as outfile:
                     async for data in tqdm(response.content.iter_chunked(chunk_size), desc=f"{filepath}: "):
                         await outfile.write(data)
 
         logger.info(f"{filepath} done")
-        
+
     # build event loop
     loop = asyncio.get_event_loop()
     tasks = [loop.create_task(download_file(url)) for url in urls]
@@ -76,7 +80,7 @@ def download_ntuples(ntuples: Dict, folder: Path):
 def main(ntuples_list: str, outputfolder: str):
     with open(ntuples_list) as f:
         ntuples = json.load(f)
-    
+
     download_ntuples(ntuples, Path(outputfolder))
 
 
