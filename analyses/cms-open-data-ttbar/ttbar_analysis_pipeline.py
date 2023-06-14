@@ -40,6 +40,13 @@
 # %% [markdown]
 # ### Imports: setting up our environment
 
+# %%
+import os
+os.environ["RUCIO_ACCOUNT"] = "dakoch"
+os.environ["RUCIO_RSE"] = "LRZ-LMU_LOCALGROUPDISK"
+os.environ["X509_USER_PROXY"] = "/home/d/David.Koch/.voms_proxy"
+os.environ["X509_CERT_DIR"] ="/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/etc/grid-security-emi/certificates"
+
 # %% tags=[]
 import logging
 import os
@@ -91,7 +98,7 @@ logging.getLogger("cabinetry").setLevel(logging.INFO)
 # %% tags=[]
 ### GLOBAL CONFIGURATION
 # input files per process, set to e.g. 10 (smaller number = faster)
-N_FILES_MAX_PER_SAMPLE = 5
+N_FILES_MAX_PER_SAMPLE = 1
 
 # enable Dask
 USE_DASK = True
@@ -106,7 +113,7 @@ with open("config.yaml") as config_file:
 ### ML-INFERENCE SETTINGS
 
 # enable ML inference
-USE_INFERENCE = True
+USE_INFERENCE = False
 
 # enable inference using NVIDIA Triton server
 USE_TRITON = False
@@ -589,10 +596,40 @@ if USE_SERVICEX:
 #
 # When `USE_SERVICEX` is false, the input files need to be processed during this step as well.
 
+# %%
+# first build a dask client
+if USE_DASK:
+    import dask_jobqueue
+    from dask.distributed import performance_report, LocalCluster
+
+    # cluster = dask_jobqueue.SLURMCluster(
+    #     cores=1,
+    #     queue="ls-schaile",
+    #     memory="3.0GB",
+    # )
+    cluster = LocalCluster()
+    nworkers = config["benchmarking"]["NUM_CORES"]
+    cluster.scale(nworkers)
+    client = utils.get_client(af=config["global"]["AF"], cluster=cluster)
+else:
+    client = None
+
+client
+
+# %%
+# wait until most workers are up for reproducable blenchmarking
+if USE_DASK:
+    interval = 5
+    count = 0
+    while len(client.ncores()) < 0.9 * nworkers:
+        time.sleep(interval)
+        count += 1
+    print(f">90% of workers are up ({len(client.ncores())}), waited {count*interval}s")
+
 # %% tags=[]
 NanoAODSchema.warn_missing_crossrefs = False # silences warnings about branches we will not use here
 if USE_DASK:
-    executor = processor.DaskExecutor(client=utils.get_client(af=config["global"]["AF"]))
+    executor = processor.DaskExecutor(client=client)
 else:
     executor = processor.FuturesExecutor(workers=config["benchmarking"]["NUM_CORES"])
 

@@ -4,7 +4,7 @@ global:
   SERVICEX_IGNORE_CACHE: false
   
   # analysis facility: set to "coffea_casa" for coffea-casa environments, "EAF" for FNAL, "local" for local setups
-  AF: coffea_casa
+  AF: local
   
 benchmarking:
 
@@ -13,7 +13,7 @@ benchmarking:
   
   # metadata to propagate through to metrics
   # "ssl-dev" allows for the switch to local data on /data
-  AF_NAME: coffea_casa
+  AF_NAME: local
   
   # currently has no effect
   SYSTEMATICS: all

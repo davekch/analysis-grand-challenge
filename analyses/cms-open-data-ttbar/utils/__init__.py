@@ -9,7 +9,7 @@ from servicex import ServiceXDataset
 import numpy as np
 import awkward as ak
 
-def get_client(af="coffea_casa"):
+def get_client(af="coffea_casa", cluster=None):
     if af == "coffea_casa":
         from dask.distributed import Client
 
@@ -29,8 +29,10 @@ def get_client(af="coffea_casa"):
 
     elif af == "local":
         from dask.distributed import Client
-
-        client = Client()
+        if cluster:
+            client = Client(cluster)
+        else:
+            client = Client()
 
     else:
         raise NotImplementedError(f"unknown analysis facility: {af}")
@@ -63,7 +65,7 @@ def construct_fileset(n_files_max_per_sample, use_xcache=False, af_name=""):
     }
 
     # list of files
-    with open("nanoaod_inputs.json") as f:
+    with open("ntuples_lrz.json") as f:
         file_info = json.load(f)
 
     # process into "fileset" summarizing all info
@@ -79,7 +81,7 @@ def construct_fileset(n_files_max_per_sample, use_xcache=False, af_name=""):
 
             file_paths = [f["path"] for f in file_list]
             if use_xcache:
-                file_paths = [f.replace("https://xrootd-local.unl.edu:1094", "root://red-xcache1.unl.edu") for f in file_paths]
+                file_paths = ["root://lcg-lrz-xcache2.grid.lrz.de:1094//" + f for f in file_paths]
             if af_name == "ssl-dev":
                 # point to local files on /data
                 file_paths = [f.replace("https://xrootd-local.unl.edu:1094//store/user/", "/data/alheld/") for f in file_paths]

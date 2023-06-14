@@ -12,6 +12,7 @@ servicex.yaml
 analyses/**/*.root
 analyses/**/*.pdf
 analyses/**/*.npz
+analyses/**/servicex.yaml
 
 workshops/agctools2021/HZZ_analysis_pipeline/**/*.root
 workshops/agctools2021/HZZ_analysis_pipeline/*/*.pdf
@@ -33,3 +34,4 @@ analyses/cms-open-data-ttbar/metrics
 
 # dask
 dask-worker-space/
+analyses/**/*.html
