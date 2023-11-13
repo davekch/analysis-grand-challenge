@@ -70,7 +70,7 @@ The tree of the above event looks something like
 To ensure that we retain the highest possible purity of :math:`t\bar{t}` events in the signal region, we make the following cuts:
 
 * Events must contain exactly one lepton, which must have :math:`p_T>30` GeV, :math:`|\eta|<2.1`, and ``sip3d<4`` (significance of 3d impact parameter)
-* Jets must have :math:`p_T>30` GeV and :math:`|\eta|>2.4` as well as satisfy ``isTightLeptonVeto``
+* Jets must have :math:`p_T>30` GeV and :math:`|\eta|<2.4` and satisfy a tight lepton veto (``isTightLeptonVeto``, or ``jetId==6``)
 * Events must have at least four jets
 * Events must have exactly one :math:`b`-tagged jet
 
@@ -122,16 +122,19 @@ The below table gives an overview of the observables and their binning.
    * - Region
      - Name
      - Binning (Processing Step)
-     - Binning (Modelling Step)
+     - Binning (Statistical inference)
    * - 4j2b (Control Region)
      - :math:`H_T`
-     - 25 bins from 50 to 550
-     - 11 bins from 50 to 550
+     - 25 bins from 50 GeV to 550 GeV
+     - 11 bins from 110 GeV to 550 GeV
    * - 4j1b (Signal Region)
      - :math:`m_{bjj}`
-     - 25 bins from 50 to 550
-     - 11 bins from 50 to 550
+     - 25 bins from 50 GeV to 550 GeV
+     - 11 bins from 110 GeV to 550 GeV
 
+25 bins should be used for histogram production.
+The statistical model should be built with less bins and a different lower bin edge for the histograms.
+This simulates a scenario where analyzers may want to evaluate their model with a finer granularity but subsequently merge bins for inference to avoid statistical fluctuations.
 
 **4j2b (Control Region)**: Event :math:`H_T`
 
@@ -210,7 +213,7 @@ This section explains how to calculate the various systematic uncertainties we i
 
 6. Statistical Model
 ---------------------------------------------------------------
-The following description details building a statistical model in the ``HistFactory`` format. This format is documented `here <https://root.cern/doc/master/group__HistFactory.html>`_ (``ROOT``) and `here <https://pyhf.readthedocs.io/en/latest/intro.html#histfactory>`_ (``pyhf``).
+The following description details building a statistical model in the ``HistFactory`` format. This format is documented in the `ROOT documentation <https://root.cern/doc/master/group__HistFactory.html>`_ and the `pyhf documentation <https://pyhf.readthedocs.io/en/latest/intro.html#histfactory>`_.
 
 We want to develop a statistical model, parameterized by some physical parameters :math:`\vec{\alpha}`. 
 We have one parameter of interest, the :math:`t\bar{t}` cross-section, and a handful of *nuisance parameters*, which are physics parameters that are not of interest in this analysis. 
@@ -228,9 +231,9 @@ Using the up/nominal/down measurements, an interpolation can be made (for each b
  
 The above example was obtained from `CERN-OPEN-2012-016 <https://cds.cern.ch/record/1456844>`_.
 
-In order to perform a fit with this model, we construct some pseudodata from our Monte Carlo samples. In a real analysis, real data would be used in place of pseudodata, but this substitution has no effect on our purpose, which is demonstrating the technical workflow of a physics analysis. The formula we use for the pseudodata construction uses the Matrix Element (ME) and Parton Shower (PS) variations of :math:`t\bar{t}` and the W + jets sample::
+In order to perform a fit with this model, we construct some pseudodata from our Monte Carlo samples. In a real analysis, real data would be used in place of pseudodata, but this substitution has no effect on our purpose, which is demonstrating the technical workflow of a physics analysis. The formula we use for the pseudodata construction uses the Matrix Element (ME) and Parton Shower (PS) variations of :math:`t\bar{t}` as well as the W + jets and t-channel single top samples::
 
-    pseudo_data = (all_histograms[:, :, "ttbar", "ME_var"] + all_histograms[:, :, "ttbar", "PS_var"]) / 2  + all_histograms[:, :, "wjets", "nominal"]
+    pseudo_data = (all_histograms[:, :, "ttbar", "ME_var"] + all_histograms[:, :, "ttbar", "PS_var"]) / 2  + all_histograms[:, :, "wjets", "nominal"] + all_histograms[:, :, "single_top_t_chan", "nominal"]
 
 Using our pseudodata, we run a maximum likelihood fit over all parameters to find the best-fit parameter values. The fit balances a trade-off between altering the model values to agree with the data and keeping the nuisance parameters as close to the nominal values as possible.
 
@@ -266,7 +269,7 @@ This is visualized in the diagram below:
   :width: 80%
   :alt: Diagram of a :math:`t\bar{t}` event with the three machine learning labels for jets.
   
-In each event, we consider each permutation of jets assigned to these labels, restricting to the leading :math:`N` jets. 
+In each event, we consider each permutation of jets assigned to these labels, restricting to the leading (in :math:`p_T`) :math:`N` jets. 
 The number of such permutations (assuming the event has at least :math:`N` jets and that :math:`N\geq 4`) is :math:`N!/(2\cdot (N-4)!)`. 
 For example, if there are 4 jets in an event, we consider :math:`4!/2=12` permutations. 
 The :math:`4!` comes from labelling 4 jets, while dividing by 2 accounts for the fact that two of the jets are labelled indistinguishably. 
@@ -310,7 +313,7 @@ It is a future goal to move onto a more sophisticated architecture, as the BDT m
 
 BDT Performance
 ---------------------------------------------------------------
-The results in this section are specific to the models provided in the `repository /<https://github.com/iris-hep/analysis-grand-challenge/tree/main/analyses/cms-open-data-ttbar/models>`_. The results will differ some with each model-training.
+The results in this section are specific to the models provided in the `repository <https://github.com/iris-hep/analysis-grand-challenge/tree/main/analyses/cms-open-data-ttbar/models>`_. The results will differ some with each model-training.
 
 We can first qualitatively compare the top mass reconstruction by the trijet combination method and the BDT method by comparing their distributions to the truth top mass reconstruction distribution. 
 The events considered here are those in which it is possible to correctly reconstruct all jet-parton assignments in the leading four jets.
