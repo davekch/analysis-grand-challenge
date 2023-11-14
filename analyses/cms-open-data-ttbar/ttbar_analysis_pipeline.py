@@ -510,44 +510,20 @@ if USE_SERVICEX:
 #
 # When `USE_SERVICEX` is false, the input files need to be processed during this step as well.
 
-# %%
-# first build a dask client
-if USE_DASK:
-    import dask_jobqueue
-    from dask.distributed import performance_report, LocalCluster
-
-    # cluster = dask_jobqueue.SLURMCluster(
-    #     cores=1,
-    #     queue="ls-schaile",
-    #     memory="3.0GB",
-    # )
-    cluster = LocalCluster()
-    nworkers = config["benchmarking"]["NUM_CORES"]
-    cluster.scale(nworkers)
-    client = utils.get_client(af=config["global"]["AF"], cluster=cluster)
-else:
-    client = None
-
-client
-
-# %%
-# wait until most workers are up for reproducable blenchmarking
-if USE_DASK:
-    interval = 5
-    count = 0
-    while len(client.ncores()) < 0.9 * nworkers:
-        time.sleep(interval)
-        count += 1
-    print(f">90% of workers are up ({len(client.ncores())}), waited {count*interval}s")
-
 # %% tags=[]
 NanoAODSchema.warn_missing_crossrefs = False # silences warnings about branches we will not use here
 if USE_DASK:
-    executor = processor.DaskExecutor(client=client)
-NanoAODSchema.warn_missing_crossrefs = False # silences warnings about branches we will not use here
-if USE_DASK:
     cloudpickle.register_pickle_by_value(utils) # serialize methods and objects in utils so that they can be accessed within the coffea processor
-    executor = processor.DaskExecutor(client=utils.clients.get_client(af=utils.config["global"]["AF"]))
+    client = utils.clients.get_client(af=utils.config["global"]["AF"])
+    executor = processor.DaskExecutor(client=client)
+
+    print("wait until most workers are up for reproducable blenchmarking")
+    interval = 5
+    count = 0
+    while len(client.ncores()) < 0.9 * utils.config["benchmarking"]["NUM_CORES"]:
+        time.sleep(interval)
+        count += 1
+    print(f">90% of workers are up ({len(client.ncores())}), waited {count*interval}s")
 else:
     executor = processor.FuturesExecutor(workers=utils.config["benchmarking"]["NUM_CORES"])
 

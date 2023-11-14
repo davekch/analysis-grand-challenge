@@ -1,3 +1,6 @@
+from .config import config
+
+
 def get_client(af="coffea_casa"):
     if af == "coffea_casa":
         from dask.distributed import Client
@@ -27,7 +30,20 @@ def get_client(af="coffea_casa"):
         cluster.scale(50)
         
         client = cluster.get_client()
-        
+
+    elif af == "lmu":
+        import dask_jobqueue
+        from dask.distributed import Client
+
+        cluster = dask_jobqueue.SLURMCluster(
+            cores=1,
+            queue="ls-schaile",
+            memory="3.0GB",
+        )
+        cluster.scale(config["benchmarking"]["NUM_CORES"])
+        client = Client(cluster)
+        print(f"view dask dashboard at {client.dashboard_link}")
+
     elif af == "local":
         from dask.distributed import Client
 

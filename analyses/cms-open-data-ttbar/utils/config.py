@@ -3,7 +3,7 @@ config = {
         # ServiceX: ignore cache with repeated queries
         "SERVICEX_IGNORE_CACHE": False,
         # analysis facility: set to "coffea_casa" for coffea-casa environments, "EAF" for FNAL, "local" for local setups
-        "AF": "coffea_casa",
+        "AF": "lmu",
         # number of bins for standard histograms in processor
         "NUM_BINS": 25,
         # lower end of standard histograms in processor
@@ -24,7 +24,7 @@ config = {
         "XCACHE_ATLAS_PREFIX": None,
         ### metadata to propagate through to metrics ###
         # "ssl-dev" allows for the switch to local data on /data
-        "AF_NAME": "coffea_casa",
+        "AF_NAME": "lmu",
         # currently has no effect
         "SYSTEMATICS": "all",
         # does not do anything, only used for metric gathering (set to 2 for distributed coffea-casa)
