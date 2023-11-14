@@ -12,7 +12,7 @@ servicex.yaml
 analyses/**/*.root
 analyses/**/*.pdf
 analyses/**/*.npz
-analyses/**/servicex.yaml
+analyses/**/slurm*.out
 
 workshops/agctools2021/HZZ_analysis_pipeline/**/*.root
 workshops/agctools2021/HZZ_analysis_pipeline/*/*.pdf
