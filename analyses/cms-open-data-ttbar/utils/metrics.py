@@ -17,6 +17,8 @@ def track_metrics(metrics, fileset, exec_time, USE_DASK, USE_SERVICEX, N_FILES_M
         dataset_source = "EOS"
     elif "xrootd-local.unl.edu" in file_name:
         dataset_source = "UNL"
+    elif "lcg-lrz-rootd.grid.lrz.de" in file_name:
+        dataset_source = "LRZ"
     else:
         dataset_source = "unknown"
 
