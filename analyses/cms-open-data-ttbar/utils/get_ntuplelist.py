@@ -3,60 +3,72 @@ import uproot
 import json
 from tqdm import tqdm
 
-
-SCOPE = "user.ivukotic"
-dids = [
-    "user.ivukotic.ttbar__nominal",
-    "user.ivukotic.ttbar__scaledown",
-    "user.ivukotic.ttbar__scaleup",
-    "user.ivukotic.ttbar__ME_var",
-    "user.ivukotic.ttbar__PS_var",
-    "user.ivukotic.single_top_s_chan__nominal",
-    "user.ivukotic.single_top_t_chan__nominal",
-    "user.ivukotic.single_top_tW__nominal",
-    "user.ivukotic.wjets__nominal",
-]
 RSE = "LRZ-LMU_LOCALGROUPDISK"
-TREENAME = "events"
 
 
-def get_replica_info(name, scope=SCOPE, rse=RSE):
+def get_replica_info(dids: list[dict], rse: str=RSE) -> dict:
     client = Client()
-    replicas_info = {
-        "files": [],
-        "nevts_total": 0
-    }
-    # get info about all files in this dataset
-    replicas_info_raw = client.list_replicas(
-        [{"scope": scope, "name": name}], rse_expression=rse
-    )
-    # this for loop is super slow because there are a ton of items -> do this concurrently?
-    for replica in tqdm(replicas_info_raw):
-        # if there is more than one url, you misunderstood the output of this thingy
-        assert len(replica["rses"][RSE]) == 1, "quack!"
-        # get the url
-        info = {"path": replica["rses"][RSE][0]}
-        # get the number of events in this file
-        with uproot.open(info["path"] + ":" + TREENAME) as tree:
-            info["nevts"] = tree.num_entries
+    response = client.list_replicas(dids, rse_expression=rse)
+    # make the result a dict of name -> info instead of a list of infos
+    result = {}
+    for r in response:
+        # make sure name is unique
+        assert r["name"] not in result
+        result[r["name"]] = r
 
-        replicas_info["files"].append(info)
-        replicas_info["nevts_total"] += info["nevts"]
-
-    return replicas_info
+    return result
 
 
-ntuples_info = {}
+def transform_ntuplelist(original: dict, replica_infos: dict, verify_num_entries=False) -> dict:
+    """
+    change all paths in the original ntuples list with the path obtained
+    from replica_infos
+    """
+    new = {}
+    for sample in original:
+        print(f"{sample}...")
+        new[sample] = {}
+        for variation in original[sample]:
+            print(f"  {variation}")
+            new[sample][variation] = {}
+            new[sample][variation]["nevts_total"] = original[sample][variation]["nevts_total"]
+            new[sample][variation]["files"] = []
+            for file in tqdm(original[sample][variation]["files"]):
+                name = file["path"].split("/")[-1]
+                if name not in replica_infos:
+                    raise KeyError(f"file {name} does not exist as a replica")
+                for pfn in replica_infos[name]["pfns"]:
+                    if pfn.startswith("root://"):
+                        path = pfn
+                        break
+                else:
+                    raise KeyError(f"file {name} has no root:// url to it")
+            
+                if verify_num_entries:
+                    ntuple = uproot.open(path)
+                    tree = ntuple["Events"]
+                    nevts = tree.num_entries
+                    ntuple.close()
+                    if nevts != file["nevts"]:
+                        raise ValueError(f"number of entries for file {name} do not match with original ntuple list")
+                else:
+                    nevts = file["nevts"]
 
-for did in dids:
-    dataset = did.split(".")[2]
-    sample, variation = dataset.split("__")
-    if sample not in ntuples_info:
-        ntuples_info[sample] = {}
+                new_file = {
+                    "path": path,
+                    "nevts": nevts,
+                }
+                new[sample][variation]["files"].append(new_file)
 
-    print(f"get info for {sample} ({variation})")
-    ntuples_info[sample][variation] = get_replica_info(did)
+    return new
 
-    # save after every loop because some iterations are super slow and it might crash in the meantime
-    with open("ntuples_lrz.json", "w") as f:
-        json.dump(ntuples_info, f, indent=4)
+
+if __name__ == "__main__":
+    with open("../nanoaod_inputs.json") as f:
+        unl_ntuplelist = json.load(f)
+
+    replica_infos = get_replica_info(dids=[{"scope": "user.dakoch", "name": "agc-1.0.0"}])
+    lrz_ntuplelist = transform_ntuplelist(unl_ntuplelist, replica_infos)
+
+    with open("../ntuples_lrz.json", "w") as f:
+        json.dump(lrz_ntuplelist, f, indent=4)
