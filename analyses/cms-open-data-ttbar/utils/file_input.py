@@ -50,7 +50,7 @@ def construct_fileset(n_files_max_per_sample, use_xcache=False, af_name="", loca
     }
 
     # list of files
-    with open("nanoaod_inputs.json") as f:
+    with open("ntuples_lrz.json") as f:
         file_info = json.load(f)
 
     # process into "fileset" summarizing all info
