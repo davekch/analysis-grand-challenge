@@ -31,17 +31,26 @@ def get_client(af="coffea_casa"):
         
         client = cluster.get_client()
 
-    elif af == "lmu":
+    elif af == "lmu" or af == "lrz":
         import dask_jobqueue
         from dask.distributed import Client
 
+        if af == "lmu":
+            queue = "ls-schaile"
+            extra = []
+        elif af == "lrz":
+            queue = "lcg_serial"
+            extra = ["--clusters=lcg", "--qos=lcg_add"]
+
         cluster = dask_jobqueue.SLURMCluster(
             cores=1,
-            queue="ls-schaile",
+            queue=queue,
             memory="3.0GB",
+            job_extra_directives=extra,
         )
         cluster.scale(config["benchmarking"]["NUM_CORES"])
         client = Client(cluster)
+        print(f"client address: {cluster.scheduler.address}")
         print(f"view dask dashboard at {client.dashboard_link}")
 
     elif af == "local":
