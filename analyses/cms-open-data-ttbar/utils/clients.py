@@ -31,12 +31,15 @@ def get_client(af="coffea_casa"):
         
         client = cluster.get_client()
 
-    elif af == "lmu" or af == "lrz":
+    elif af == "lmu" or af == "lmu-agkuhr" or af == "lrz":
         import dask_jobqueue
         from dask.distributed import Client
 
         if af == "lmu":
             queue = "ls-schaile"
+            extra = []
+        elif af == "lmu-agkuhr":
+            queue = "agkuhr"
             extra = []
         elif af == "lrz":
             queue = "lcg_serial"
